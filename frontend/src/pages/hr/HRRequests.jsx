@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Send, Plus, Filter, Clock, CheckCircle, XCircle, AlertCircle, FileText, User, CalendarClock, KeyRound, Settings } from 'lucide-react';
+import { Send, Plus, Filter, Clock, CheckCircle, XCircle, AlertCircle, FileText, User, CalendarClock, KeyRound, Settings, Eye } from 'lucide-react';
 import hrRequestService from '../../services/hrRequestService';
 import hrService from '../../services/hrService';
 import { useToast } from '../../context/ToastContext';
@@ -9,6 +9,8 @@ export default function HRRequests() {
   const [stats, setStats] = useState({});
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
+  const [showViewModal, setShowViewModal] = useState(false);
+  const [selectedRequest, setSelectedRequest] = useState(null);
   const [filter, setFilter] = useState({ status: '', requestType: '' });
   const { showToast } = useToast();
 
@@ -108,11 +110,14 @@ export default function HRRequests() {
 
   const getStatusBadge = (status) => {
     const badges = {
+      open: { bg: 'bg-yellow-100', text: 'text-yellow-800', icon: <Clock size={16} /> },
       pending: { bg: 'bg-yellow-100', text: 'text-yellow-800', icon: <Clock size={16} /> },
+      assigned: { bg: 'bg-blue-100', text: 'text-blue-800', icon: <AlertCircle size={16} /> },
       in_progress: { bg: 'bg-blue-100', text: 'text-blue-800', icon: <AlertCircle size={16} /> },
       approved: { bg: 'bg-green-100', text: 'text-green-800', icon: <CheckCircle size={16} /> },
       rejected: { bg: 'bg-red-100', text: 'text-red-800', icon: <XCircle size={16} /> },
-      completed: { bg: 'bg-gray-100', text: 'text-gray-800', icon: <CheckCircle size={16} /> },
+      completed: { bg: 'bg-emerald-100', text: 'text-emerald-800', icon: <CheckCircle size={16} /> },
+      closed: { bg: 'bg-gray-100', text: 'text-gray-800', icon: <CheckCircle size={16} /> },
     };
     const badge = badges[status] || badges.pending;
     return (
@@ -131,6 +136,11 @@ export default function HRRequests() {
       urgent: 'bg-red-100 text-red-700',
     };
     return <span className={`px-2 py-1 rounded text-xs font-medium ${colors[priority]}`}>{priority.toUpperCase()}</span>;
+  };
+
+  const handleViewRequest = (request) => {
+    setSelectedRequest(request);
+    setShowViewModal(true);
   };
 
   const selectedType = requestTypes.find(t => t.value === formData.requestType);
@@ -246,6 +256,15 @@ export default function HRRequests() {
                         <p className="text-sm text-red-700"><strong>Rejection Reason:</strong> {request.rejectionReason}</p>
                       </div>
                     )}
+                  </div>
+                  <div className="ml-4">
+                    <button
+                      onClick={() => handleViewRequest(request)}
+                      className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors shadow-sm hover:shadow-md"
+                    >
+                      <Eye size={18} />
+                      <span>View</span>
+                    </button>
                   </div>
                 </div>
               </div>
@@ -383,6 +402,143 @@ export default function HRRequests() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* View Request Modal */}
+      {showViewModal && selectedRequest && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-gradient-to-r from-purple-600 to-purple-700 text-white p-6 rounded-t-2xl flex items-center justify-between">
+              <div>
+                <h2 className="text-2xl font-bold">Request Details</h2>
+                <p className="text-purple-100 text-sm">Reference ID: #{selectedRequest.id}</p>
+              </div>
+              <button 
+                onClick={() => setShowViewModal(false)} 
+                className="p-2 hover:bg-white/20 rounded-lg transition-colors"
+              >
+                <XCircle size={24} />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-6">
+              {/* Status and Priority */}
+              <div className="flex items-center gap-3">
+                {getStatusBadge(selectedRequest.status)}
+                {getPriorityBadge(selectedRequest.priority)}
+              </div>
+
+              {/* Request Type */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Request Type</label>
+                <div className="flex items-center gap-2 p-3 bg-purple-50 border border-purple-200 rounded-lg">
+                  {requestTypes.find(t => t.value === selectedRequest.requestType)?.icon}
+                  <span className="font-semibold text-purple-900">
+                    {requestTypes.find(t => t.value === selectedRequest.requestType)?.label}
+                  </span>
+                </div>
+              </div>
+
+              {/* Title */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Title</label>
+                <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg">
+                  <p className="text-gray-900 font-medium">{selectedRequest.title}</p>
+                </div>
+              </div>
+
+              {/* Description */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
+                <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                  <p className="text-gray-900 whitespace-pre-wrap">{selectedRequest.description}</p>
+                </div>
+              </div>
+
+              {/* Target Employee */}
+              {selectedRequest.targetEmployeeId && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Target Employee</label>
+                  <div className="flex items-center gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <User size={18} className="text-blue-600" />
+                    <span className="font-medium text-blue-900">
+                      {selectedRequest.TargetEmployee?.fullName || 'Unknown'} 
+                      {selectedRequest.TargetEmployee?.employeeId && ` (${selectedRequest.TargetEmployee.employeeId})`}
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* Assigned MIS */}
+              {selectedRequest.AssignedMIS && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Assigned To</label>
+                  <div className="flex items-center gap-2 p-3 bg-indigo-50 border border-indigo-200 rounded-lg">
+                    <User size={18} className="text-indigo-600" />
+                    <span className="font-medium text-indigo-900">
+                      {selectedRequest.AssignedMIS.fullName}
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* Rejection Reason */}
+              {selectedRequest.rejectionReason && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Rejection Reason</label>
+                  <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                    <p className="text-red-900 whitespace-pre-wrap">{selectedRequest.rejectionReason}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Completion Note */}
+              {selectedRequest.status === 'completed' && selectedRequest.completionNote && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Completion Note</label>
+                  <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-lg">
+                    <p className="text-emerald-900 whitespace-pre-wrap">{selectedRequest.completionNote}</p>
+                    {selectedRequest.completedAt && (
+                      <p className="text-xs text-emerald-600 mt-2">
+                        Completed on {new Date(selectedRequest.completedAt).toLocaleString()}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Timestamps */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Created At</label>
+                  <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg">
+                    <p className="text-gray-900 text-sm">
+                      {new Date(selectedRequest.createdAt).toLocaleString()}
+                    </p>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Last Updated</label>
+                  <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg">
+                    <p className="text-gray-900 text-sm">
+                      {new Date(selectedRequest.updatedAt).toLocaleString()}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Close Button */}
+              <div className="flex justify-end pt-4 border-t border-gray-200">
+                <button
+                  onClick={() => setShowViewModal(false)}
+                  className="px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

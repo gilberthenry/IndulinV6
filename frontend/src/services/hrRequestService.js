@@ -56,6 +56,12 @@ const hrRequestService = {
     const response = await api.put(`/mis/config-requests/${id}/reject`, { rejectionReason });
     return response.data;
   },
+
+  // MIS: Complete request
+  completeRequest: async (id, completionNote = '') => {
+    const response = await api.put(`/mis/config-requests/${id}/complete`, { completionNote });
+    return response.data;
+  },
 };
 
 export default hrRequestService;

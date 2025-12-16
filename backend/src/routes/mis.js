@@ -33,5 +33,6 @@ router.get('/config-requests/:id', authenticateToken, authorizeRoles('mis'), HRR
 router.put('/config-requests/:id/assign', authenticateToken, authorizeRoles('mis'), HRRequestController.assignRequest);
 router.put('/config-requests/:id/approve', authenticateToken, authorizeRoles('mis'), HRRequestController.approveRequest);
 router.put('/config-requests/:id/reject', authenticateToken, authorizeRoles('mis'), HRRequestController.rejectRequest);
+router.put('/config-requests/:id/complete', authenticateToken, authorizeRoles('mis'), HRRequestController.completeRequest);
 
 module.exports = router;
